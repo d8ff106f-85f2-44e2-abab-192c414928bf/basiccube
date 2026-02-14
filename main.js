@@ -14,6 +14,7 @@ canvas.addEventListener("mousedown",  handle_down);
 canvas.addEventListener("touchstart", handle_down);
 document.addEventListener("mouseup", handle_up);
 document.addEventListener("touchend", handle_up);
+window.addEventListener("resize", handle_resize);
 
 main();
 
@@ -123,7 +124,7 @@ async function main() {
         },
     });
 
-    const depthTexture = device.createTexture({
+    let depthTexture = device.createTexture({
         size: [canvas.width, canvas.height],
         format: 'depth24plus',
         usage: GPUTextureUsage.RENDER_ATTACHMENT,
@@ -168,8 +169,10 @@ async function main() {
     const viewMatrix = new Float32Array(16);
 
     drawframe = function(timestamp) {
-        const w = canvas.clientWidth * window.devicePixelRatio;
-        const h = canvas.clientHeight * window.devicePixelRatio;
+        const currentTexture = context.getCurrentTexture();
+
+        const w = currentTexture.width;
+        const h = currentTexture.height;
         const f = Math.sqrt(w*w + h*h); 
         const p = projMatrix;
         const v = viewMatrix;   
@@ -193,8 +196,22 @@ async function main() {
 
         device.queue.writeBuffer(cameraBuffer, 0, p.buffer, p.byteOffset, p.byteLength);
         device.queue.writeBuffer(modelBuffer, 0, v.buffer, v.byteOffset, v.byteLength);
+        
+        if (!depthTexture ||
+            depthTexture.width  !== w ||
+            depthTexture.height !== h) {
+            if (depthTexture) {
+                depthTexture.destroy();
+            }
+            depthTexture = device.createTexture({
+                size: [w, h],
+                format: 'depth24plus',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT,
+            });
+        }
+        renderPassDescriptor.depthStencilAttachment.view = depthTexture.createView();
+        renderPassDescriptor.colorAttachments[0].view = currentTexture.createView();
 
-        renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
         const commandEncoder = device.createCommandEncoder();
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(pipeline);
@@ -210,6 +227,15 @@ async function main() {
     frame_queued = true;
     requestAnimationFrame(drawframe);
 
+}
+
+function handle_resize(event) {
+    canvas.width = canvas.clientWidth * window.devicePixelRatio;
+    canvas.height = canvas.clientHeight * window.devicePixelRatio;
+    if (!frame_queued) {
+        frame_queued = true;
+        requestAnimationFrame(drawframe);
+    }
 }
 
 function handle_slider(event) {
