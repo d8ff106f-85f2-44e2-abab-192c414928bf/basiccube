@@ -172,7 +172,7 @@ const fail = (() => {
 
 
 
-const Quat = function(i,j,k,l) {
+function Quat(i,j,k,l) {
     return {
         i,
         j,
@@ -267,54 +267,10 @@ const Quat = function(i,j,k,l) {
 async function main() {
     const vert_wgsl = await (await fetch('vert.wgsl')).text();
     const frag_wgsl = await (await fetch('frag.wgsl')).text();
-    const cubeVertexSize = 4 * 10; // Byte size of one cube vertex.
-    const cubePositionOffset = 0;
-    const cubeUVOffset = 4 * 8;
-    const cubeVertexCount = 36;
-    const cubeVertexArray = new Float32Array([
-        // float4 position, float4 color, float2 uv,
-        1, -1, 1, 1, 1, 0, 1, 1, 0, 1,
-        -1, -1, 1, 1, 0, 0, 1, 1, 1, 1,
-        -1, -1, -1, 1, 0, 0, 0, 1, 1, 0,
-        1, -1, -1, 1, 1, 0, 0, 1, 0, 0,
-        1, -1, 1, 1, 1, 0, 1, 1, 0, 1,
-        -1, -1, -1, 1, 0, 0, 0, 1, 1, 0,
-        1, 1, 1, 1, 1, 1, 1, 1, 0, 1,
-        1, -1, 1, 1, 1, 0, 1, 1, 1, 1,
-        1, -1, -1, 1, 1, 0, 0, 1, 1, 0,
-        1, 1, -1, 1, 1, 1, 0, 1, 0, 0,
-        1, 1, 1, 1, 1, 1, 1, 1, 0, 1,
-        1, -1, -1, 1, 1, 0, 0, 1, 1, 0,
-        -1, 1, 1, 1, 0, 1, 1, 1, 0, 1,
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-        1, 1, -1, 1, 1, 1, 0, 1, 1, 0,
-        -1, 1, -1, 1, 0, 1, 0, 1, 0, 0,
-        -1, 1, 1, 1, 0, 1, 1, 1, 0, 1,
-        1, 1, -1, 1, 1, 1, 0, 1, 1, 0,
-        -1, -1, 1, 1, 0, 0, 1, 1, 0, 1,
-        -1, 1, 1, 1, 0, 1, 1, 1, 1, 1,
-        -1, 1, -1, 1, 0, 1, 0, 1, 1, 0,
-        -1, -1, -1, 1, 0, 0, 0, 1, 0, 0,
-        -1, -1, 1, 1, 0, 0, 1, 1, 0, 1,
-        -1, 1, -1, 1, 0, 1, 0, 1, 1, 0,
-        1, 1, 1, 1, 1, 1, 1, 1, 0, 1,
-        -1, 1, 1, 1, 0, 1, 1, 1, 1, 1,
-        -1, -1, 1, 1, 0, 0, 1, 1, 1, 0,
-        -1, -1, 1, 1, 0, 0, 1, 1, 1, 0,
-        1, -1, 1, 1, 1, 0, 1, 1, 0, 0,
-        1, 1, 1, 1, 1, 1, 1, 1, 0, 1,
-        1, -1, -1, 1, 1, 0, 0, 1, 0, 1,
-        -1, -1, -1, 1, 0, 0, 0, 1, 1, 1,
-        -1, 1, -1, 1, 0, 1, 0, 1, 1, 0,
-        1, 1, -1, 1, 1, 1, 0, 1, 0, 0,
-        1, -1, -1, 1, 1, 0, 0, 1, 0, 1,
-        -1, 1, -1, 1, 0, 1, 0, 1, 1, 0,
-    ]);
 
     const adapter = await navigator.gpu?.requestAdapter({
         featureLevel: 'compatibility',
     });
-
     const device = await adapter?.requestDevice();
     quitIfWebGPUNotAvailableOrMissingFeatures(adapter, device);
 
@@ -328,14 +284,53 @@ async function main() {
         device,
         format: presentationFormat,
     });
-    // Create a vertex buffer from the cube data.
-    const verticesBuffer = device.createBuffer({
-        size: cubeVertexArray.byteLength,
+    
+
+    const vertex_stride = 4 * 3;
+    const vertex_data = new Float32Array([
+        -1,-1,-1,
+         1,-1,-1,
+        -1, 1,-1,
+         1, 1,-1,
+        -1,-1, 1,
+         1,-1, 1,
+        -1, 1, 1,
+         1, 1, 1,
+    ]);
+    const vertex_buffer = device.createBuffer({
+        size: vertex_data.byteLength,
         usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
         mappedAtCreation: true,
     });
-    new Float32Array(verticesBuffer.getMappedRange()).set(cubeVertexArray);
-    verticesBuffer.unmap();
+    new Float32Array(vertex_buffer.getMappedRange()).set(vertex_data);
+    vertex_buffer.unmap();
+
+
+    const cube_indices_length = 3 * 12;
+    const index_data_type = 'uint32';
+    const index_data = new Uint32Array([
+        0, 1, 5,
+        5, 4, 0,
+        0, 4, 6,
+        6, 2, 0,
+        0, 2, 3,
+        3, 1, 0,
+        7, 6, 4,
+        4, 5, 7,
+        7, 5, 1,
+        1, 3, 7,
+        7, 3, 2,
+        2, 6, 7,
+    ]);
+    const index_buffer = device.createBuffer({
+        size: index_data.byteLength,
+        usage: GPUBufferUsage.INDEX,
+        mappedAtCreation: true,
+    });
+    new Uint32Array(index_buffer.getMappedRange()).set(index_data);
+    index_buffer.unmap();
+
+
     const pipeline = device.createRenderPipeline({
         layout: 'auto',
         vertex: {
@@ -344,17 +339,12 @@ async function main() {
             }),
             buffers: [
                 {
-                    arrayStride: cubeVertexSize,
+                    arrayStride: vertex_stride,
                     attributes: [
                         {
                             shaderLocation: 0,
-                            offset: cubePositionOffset,
-                            format: 'float32x4',
-                        },
-                        {
-                            shaderLocation: 1,
-                            offset: cubeUVOffset,
-                            format: 'float32x2',
+                            offset: 0,
+                            format: 'float32x3',
                         },
                     ],
                 },
@@ -371,7 +361,7 @@ async function main() {
             ],
         },
         primitive: {
-            topology: 'line-list', // 'triangle-list',
+            topology: 'triangle-list', // 'line-list',
             cullMode: 'back',
         },
         depthStencil: {
@@ -380,6 +370,7 @@ async function main() {
             format: 'depth24plus',
         },
     });
+
     const depthTexture = device.createTexture({
         size: [canvas.width, canvas.height],
         format: 'depth24plus',
@@ -499,31 +490,26 @@ async function main() {
         
         v[12] = 0.0;
         v[13] = 0.0;
-        v[14] = -4*slider_value;
+        v[14] =-8.0;
         v[15] = 1.0;
 
-        const testarr = new Float32Array([slider_value, slider_value]);
-        device.queue.writeBuffer(verticesBuffer, 0, testarr.buffer, 0, 8);
+        const testarr = new Float32Array([slider_value, slider_value, slider_value]);
+        device.queue.writeBuffer(vertex_buffer, 84, testarr.buffer, testarr.byteOffset, testarr.byteLength);
 
         device.queue.writeBuffer(cameraBuffer, 0, p.buffer, p.byteOffset, p.byteLength);
         device.queue.writeBuffer(modelBuffer, 0, v.buffer, v.byteOffset, v.byteLength);
 
-        
         renderPassDescriptor.colorAttachments[0].view = context.getCurrentTexture().createView();
         const commandEncoder = device.createCommandEncoder();
         const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
         passEncoder.setPipeline(pipeline);
         passEncoder.setBindGroup(0, uniformBindGroup);
-        passEncoder.setVertexBuffer(0, verticesBuffer);
-        passEncoder.draw(cubeVertexCount);
+        passEncoder.setVertexBuffer(0, vertex_buffer);
+        passEncoder.setIndexBuffer(index_buffer, index_data_type);
+        passEncoder.drawIndexed(cube_indices_length);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
-
-
         frame_queued = false;
-        
-        frame_queued = true;
-        requestAnimationFrame(frame);
     }
 
     frame_queued = true;
