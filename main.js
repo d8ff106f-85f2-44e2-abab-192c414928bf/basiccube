@@ -271,6 +271,7 @@ function handle_move(event) {
 }
 
 function handle_touch(event) {
+    if (event.touches.length == 0) return;
     let dx = 0;
     let dy = 0;
     for (let i = 0; i < event.touches.length; i++) {
