@@ -422,55 +422,63 @@ async function main() {
     let frame_queued = false;
     let slider_value = document.getElementById("scale").value;
     
-    window.addEventListener("mouseup", 
-        (event) => {
-            dragT = 0;
+    function handle_slider(event) {
+        slider_value = event.target.value;
+        if (!frame_queued) {
+            frame_queued = true;
+            requestAnimationFrame(frame);
         }
-    );
-
-    canvas.addEventListener("mousedown", 
-        (event) => {
-            dragX = event.clientX;
-            dragY = event.clientY;
-            dragT = event.timeStamp;
-        }
-    );
-
-    canvas.addEventListener("mousemove", 
-        (event) => {
-            if (dragT == 0) return;
-            const rx = event.clientX - dragX;
-            const ry = event.clientY - dragY;
-            const rr = rx*rx + ry*ry;
-            dragX = event.clientX;
-            dragY = event.clientY;
-            if (rr > 0) {
-                const sens = 16.0 * Math.PI / 10800.0;
-                const rad = Math.sqrt(rr) * sens;
-                const rot = Quat(
-                    Math.sin(rad/2) * (-ry) / Math.sqrt(rr),
-                    Math.sin(rad/2) * (-rx) / Math.sqrt(rr),
-                    0,
-                    Math.cos(rad/2),
-                )
-                viewQuat = viewQuat.compose(rot);
-                if (!frame_queued) {
-                    frame_queued = true;
-                    requestAnimationFrame(frame);
-                }
-            }
-        }
-    );
-
-    document.getElementById("scale").addEventListener("input", 
-        (event) => {
-            slider_value = event.target.value;
+    }
+    function handle_up(event) {
+        dragT = 0;
+    }
+    function handle_down(event) {
+        dragX = event.clientX;
+        dragY = event.clientY;
+        dragT = event.timeStamp;
+    }
+    function handle_move(event) {
+        if (dragT == 0) return;
+        const rx = event.clientX - dragX;
+        const ry = event.clientY - dragY;
+        const rr = rx*rx + ry*ry;
+        dragX = event.clientX;
+        dragY = event.clientY;
+        if (rr > 0) {
+            const sens = 16.0 * Math.PI / 10800.0;
+            const rad = Math.sqrt(rr) * sens;
+            const rot = Quat(
+                Math.sin(rad/2) * (-ry) / Math.sqrt(rr),
+                Math.sin(rad/2) * (-rx) / Math.sqrt(rr),
+                0,
+                Math.cos(rad/2),
+            )
+            viewQuat = viewQuat.compose(rot);
             if (!frame_queued) {
                 frame_queued = true;
                 requestAnimationFrame(frame);
             }
         }
-    );
+    }
+    function handle_touch(event) {
+        let dx = 0;
+        let dy = 0;
+        for (let i = 0; i < event.touches.length; i++) {
+            dx += event.touches[i].clientX;
+            dy += event.touches[i].clientY;
+        }
+        if (dx == 0 && dy == 0) return;
+        event.clientX = dx / event.touches.length;
+        event.clientY = dy / event.touches.length;
+        handle_move(event);
+    }
+    document.addEventListener("mouseup", handle_up);
+    document.addEventListener("touchend", handle_up);
+    canvas.addEventListener("mousedown",  handle_down);
+    canvas.addEventListener("touchstart", handle_down);
+    canvas.addEventListener("mousemove", handle_move);
+    canvas.addEventListener("touchmove", handle_touch);
+    document.getElementById("scale").addEventListener("input", handle_slider);
 
     function frame(timestamp) {
         const w = canvas.clientWidth * window.devicePixelRatio;
