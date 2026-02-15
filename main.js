@@ -3,6 +3,7 @@ let dragX = 0;
 let dragY = 0;
 let dragT = 0;
 let viewQuat = Quat(0.5,0.5,0.5,0.5);
+let zoom = 0;
 let slider_value = document.getElementById("scale").value;
 let drawframe = function(timestamp) {};
 
@@ -14,6 +15,7 @@ canvas.addEventListener("touchstart", handle_down);
 window.addEventListener("mouseup", handle_up);
 window.addEventListener("touchend", handle_up);
 window.addEventListener("resize", handle_resize);
+window.addEventListener("wheel", handle_wheel);
 window.frame_queued = false;
 main();
 
@@ -172,7 +174,8 @@ async function main() {
 
         const w = currentTexture.width;
         const h = currentTexture.height;
-        const f = Math.sqrt(w*w + h*h); 
+        const z = Math.exp(-zoom * Math.LN2 / 1200);
+        const f = Math.sqrt(w*w + h*h) * z;
         const p = projMatrix;
         const v = viewMatrix;   
         [ p[ 0] , p[ 4] , p[ 8] , p[12] ] = [ 1/w , 0.0 , 0.0 , 0.0 ];
@@ -187,8 +190,8 @@ async function main() {
         
         v[12] = 0.0;
         v[13] = 0.0;
-        v[14] =-8.0;
-        v[15] = 1.0;
+        v[14] =-8.0 / z;
+        v[15] = 1.0 / z;
 
         const testarr = new Float32Array([slider_value, slider_value, slider_value]);
         device.queue.writeBuffer(vertex_buffer, 84, testarr.buffer, testarr.byteOffset, testarr.byteLength);
@@ -226,6 +229,15 @@ async function main() {
     window.frame_queued = true;
     requestAnimationFrame(drawframe);
 
+}
+
+function handle_wheel(event) {
+    zoom += event.deltaY;
+    zoom = Math.max(-1200, Math.min(zoom, 1200));
+    if (!window.frame_queued) {
+        window.frame_queued = true;
+        requestAnimationFrame(drawframe);
+    }
 }
 
 function handle_resize(event) {
