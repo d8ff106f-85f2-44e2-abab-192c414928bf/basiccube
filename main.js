@@ -3,7 +3,6 @@ let dragX = 0;
 let dragY = 0;
 let dragT = 0;
 let viewQuat = Quat(0.5,0.5,0.5,0.5);
-let frame_queued = false;
 let slider_value = document.getElementById("scale").value;
 let drawframe = function(timestamp) {};
 
@@ -12,10 +11,10 @@ canvas.addEventListener("mousemove", handle_move);
 canvas.addEventListener("touchmove", handle_touch);
 canvas.addEventListener("mousedown",  handle_down);
 canvas.addEventListener("touchstart", handle_down);
-document.addEventListener("mouseup", handle_up);
-document.addEventListener("touchend", handle_up);
+window.addEventListener("mouseup", handle_up);
+window.addEventListener("touchend", handle_up);
 window.addEventListener("resize", handle_resize);
-
+window.frame_queued = false;
 main();
 
 async function main() {
@@ -221,10 +220,10 @@ async function main() {
         passEncoder.drawIndexed(cube_indices_length);
         passEncoder.end();
         device.queue.submit([commandEncoder.finish()]);
-        frame_queued = false;
+        window.frame_queued = false;
     }
 
-    frame_queued = true;
+    window.frame_queued = true;
     requestAnimationFrame(drawframe);
 
 }
@@ -232,16 +231,16 @@ async function main() {
 function handle_resize(event) {
     canvas.width = canvas.clientWidth * window.devicePixelRatio;
     canvas.height = canvas.clientHeight * window.devicePixelRatio;
-    if (!frame_queued) {
-        frame_queued = true;
+    if (!window.frame_queued) {
+        window.frame_queued = true;
         requestAnimationFrame(drawframe);
     }
 }
 
 function handle_slider(event) {
     slider_value = event.target.value;
-    if (!frame_queued) {
-        frame_queued = true;
+    if (!window.frame_queued) {
+        window.frame_queued = true;
         requestAnimationFrame(drawframe);
     }
 }
@@ -263,8 +262,8 @@ function handle_move(event) {
             Math.cos(rad/2),
         )
         viewQuat = viewQuat.compose(rot);
-        if (!frame_queued) {
-            frame_queued = true;
+        if (!window.frame_queued) {
+            window.frame_queued = true;
             requestAnimationFrame(drawframe);
         }
     }
