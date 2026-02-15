@@ -190,8 +190,8 @@ async function main() {
         
         v[12] = 0.0;
         v[13] = 0.0;
-        v[14] =-8.0 / z;
-        v[15] = 1.0 / z;
+        v[14] =-4.0;
+        v[15] = 1.0;
 
         const testarr = new Float32Array([slider_value, slider_value, slider_value]);
         device.queue.writeBuffer(vertex_buffer, 84, testarr.buffer, testarr.byteOffset, testarr.byteLength);
