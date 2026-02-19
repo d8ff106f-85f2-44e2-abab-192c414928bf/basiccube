@@ -1,17 +1,19 @@
 const canvas = document.getElementById('canvas');
 const button = document.getElementById('button');
+const slider = document.getElementById("slider");
+const upload = document.getElementById('upload');
 let dragX = 0;
 let dragY = 0;
 let dragT = 0;
 let viewQuat = Quat(0,0,Math.sqrt(0.5),Math.sqrt(0.5));
 let viewPos = [-152, 99, -166];
-let slider_value = document.getElementById("scale").value;
+let slider_value = slider.value;
 let last_slider_value = 0;
 let slicer_wasm = {};
 let slicer_data = 0;
 let drawframe = function(timestamp) {};
 
-document.getElementById("scale").addEventListener("input", handle_slider);
+slider.addEventListener("input", handle_slider);
 canvas.addEventListener("mousemove", handle_move);
 canvas.addEventListener("touchmove", handle_touch);
 canvas.addEventListener("mousedown",  handle_down);
@@ -25,11 +27,9 @@ window.frame_queued = false;
 
 async function init() {
 
-    const button = document.getElementById('button');
     button.disabled = true;
     button.value = 'Reading model...';
     
-    const upload = document.getElementById('upload');
     const file_size = upload.files[0].size;
     const file_reader = upload.files[0].stream().getReader();
     const file_iterator = {
