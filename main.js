@@ -355,7 +355,19 @@ async function init() {
 }
 
 function handle_wheel(event) {
-    viewPos[2] -= event.deltaY / 12;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    const x = event.clientX - w / 2;
+    const y = event.clientY - h / 2;
+    const z = Math.sqrt(w*w + h*h) / 2;
+    const d = Math.sqrt(x*x + y*y + z*z);
+    const r = event.deltaY * window.devicePixelRatio / 10;
+    const dx = r * x / d;
+    const dy = r * y / d;
+    const dz = r * z / d;
+    viewPos[0] += dx;
+    viewPos[1] -= dy;
+    viewPos[2] -= dz;
     if (!window.frame_queued) {
         window.frame_queued = true;
         requestAnimationFrame(drawframe);
