@@ -85,6 +85,28 @@ async function init() {
     }
 
     const meta = new Uint32Array(parser_memory.buffer, meta_ptr, 7);
+    const aabb = new Float32Array(parser_memory.buffer, meta_ptr + 7 * 4, 6);
+    const aabb_edge_verts = 12 * 2;
+    const min_x = aabb[0];
+    const min_y = aabb[1];
+    const min_z = aabb[2];
+    const max_x = aabb[3];
+    const max_y = aabb[4];
+    const max_z = aabb[5];
+    const aabb_outline = new Float32Array([
+        min_x, min_y, min_z, max_x, min_y, min_z,
+        min_x, min_y, min_z, min_x, max_y, min_z,
+        min_x, min_y, min_z, min_x, min_y, max_z,
+        max_x, min_y, min_z, max_x, max_y, min_z,
+        min_x, max_y, min_z, min_x, max_y, max_z,
+        min_x, min_y, max_z, max_x, min_y, max_z,
+        min_x, max_y, max_z, min_x, min_y, max_z,
+        max_x, min_y, max_z, max_x, min_y, min_z,
+        max_x, max_y, min_z, min_x, max_y, min_z,
+        max_x, max_y, max_z, max_x, max_y, min_z,
+        max_x, max_y, max_z, max_x, min_y, max_z,
+        max_x, max_y, max_z, min_x, max_y, max_z,
+    ]);
     
     const nodes_count = meta[0];
     const elems_count = meta[1];
@@ -154,7 +176,7 @@ async function init() {
     const cuts = slicer.instance.exports.reslice(data_ptr, slider_value);
     console.log(cuts);
 
-    const vertex_data = new Float32Array(slicer_memory.buffer, data[0], elems_count * 4 * 6);
+    const vertex_data = new Float32Array(slicer_memory.buffer, data[0], elems_count * 4 * 6 + aabb_edge_verts*3);
     const vertex_stride = 4 * 3;
 
 
@@ -333,8 +355,9 @@ async function init() {
             console.log(cuts);
 
             const update_bytes = cuts * 6 * 4; // six f32 per cut
-            draw_verts_count = cuts * 2; // two verts per cut
+            draw_verts_count = cuts * 2 + aabb_edge_verts; // two verts per cut, plus cube edges
             device.queue.writeBuffer(vertex_buffer, 0, vertex_data.buffer, vertex_data.byteOffset, update_bytes);
+            device.queue.writeBuffer(vertex_buffer, update_bytes, aabb_outline.buffer);
 
         }
 
